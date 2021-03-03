@@ -1,8 +1,11 @@
 import random
-a0 = 1
-a1 = 1
-a2 = 3
-a3 = 2
+import time
+#додаткове завдання: генерувати а в діапазоні (1..50),вивести час виконання програми
+start = time.time()
+a0 = (random.randint(1,50))
+a1 = (random.randint(1,50))
+a2 = (random.randint(1,50))
+a3 = (random.randint(1,50))
 X1 = [random.randrange(1,21,1) for i in range(8)]
 X2 = [random.randrange(1,21,1) for i in range(8)]
 X3 = [random.randrange(1,21,1) for i in range(8)]
@@ -32,4 +35,5 @@ print("Xн3: %s"%Xn3)
 print("Yэт: %s"%Yet)
 print("(Y-Yэт)²: %s"%f)
 print("max(Y-Yэт)²: %s"%res)
+print("Час роботи програми в секундах:", time.time() - start)
 

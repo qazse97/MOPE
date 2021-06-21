@@ -1,164 +1,210 @@
-import random
+from math import fabs
+from random import randrange
 import numpy as np
 from numpy.linalg import solve
-from scipy.stats import f,t
+from scipy.stats import f, t
+from time import perf_counter
 
-# кількість повторення дослідів
-n = 8
+m = 3
+n = 15
 
 # варіант 113
-x1min = -40
-x1max = 20
-x2min = -35
-x2max = 15
-x3min = 20
+x1min = -15
+x1max = 30
+x2min = 5
+x2max = 40
+x3min = 5
 x3max = 25
 
-# максимальне та мінімальне значення
-y_max = 200 + (x1max + x2max + x3max) / 3
-y_min = 200 + (x1min + x2min + x3min) / 3
+def function(X1, X2, X3):
+    y = 6.7 + 2.8 * X1 + 1.3 * X2 + 8.9 * X3 + 6.3 * X1 * X1 + 0.6 * X2 * X2 + 8.1 * X3 * X3 + 5.4 * X1 * X2 + \
+        0.2 * X1 * X3 + 4.9 * X2 * X3 + 5.2 * X1 * X2 * X3 + randrange(0, 10) - 5
+    return y
 
+x01 = (x1max + x1min) / 2
+x02 = (x2max + x2min) / 2
+x03 = (x3max + x3min) / 2
+deltax1 = x1max - x01
+deltax2 = x2max - x02
+deltax3 = x3max - x03
 # матриця ПФЕ
-xn = [[1, 1, 1, 1, 1, 1, 1, 1],
-      [-1, -1, 1, 1, -1, -1, 1, 1],
-      [-1, 1, -1, 1, -1, 1, -1, 1],
-      [-1, 1, 1, -1, 1, -1, -1, 1]]
+xn = [[-1, -1, -1, +1, +1, +1, -1, +1, +1, +1],
+      [-1, -1, +1, +1, -1, -1, +1, +1, +1, +1],
+      [-1, +1, -1, -1, +1, -1, +1, +1, +1, +1],
+      [-1, +1, +1, -1, -1, +1, -1, +1, +1, +1],
+      [+1, -1, -1, -1, -1, +1, +1, +1, +1, +1],
+      [+1, -1, +1, -1, +1, -1, -1, +1, +1, +1],
+      [+1, +1, -1, +1, -1, -1, -1, +1, +1, +1],
+      [+1, +1, +1, +1, +1, +1, +1, +1, +1, +1],
+      [-1.73, 0, 0, 0, 0, 0, 0, 2.9929, 0, 0],
+      [+1.73, 0, 0, 0, 0, 0, 0, 2.9929, 0, 0],
+      [0, -1.73, 0, 0, 0, 0, 0, 0, 2.9929, 0],
+      [0, +1.73, 0, 0, 0, 0, 0, 0, 2.9929, 0],
+      [0, 0, -1.73, 0, 0, 0, 0, 0, 0, 2.9929],
+      [0, 0, +1.73, 0, 0, 0, 0, 0, 0, 2.9929],
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]
 
-x1x2_norm, x1x3_norm, x2x3_norm, x1x2x3_norm = [0] * 8, [0] * 8, [0] * 8, [0] * 8
-
-for i in range(n):
-    x1x2_norm[i] = xn[1][i] * xn[2][i]
-    x1x3_norm[i] = xn[1][i] * xn[3][i]
-    x2x3_norm[i] = xn[2][i] * xn[3][i]
-    x1x2x3_norm[i] = xn[1][i] * xn[2][i] * xn[3][i]
-
-# заповнення у(генерація)
-y1 = [random.randint(int(y_min), int(y_max)) for i in range(8)]
-y2 = [random.randint(int(y_min), int(y_max)) for i in range(8)]
-y3 = [random.randint(int(y_min), int(y_max)) for i in range(8)]
-
-# матриця планування
-y_matrix = [[y1[0], y2[0], y3[0]],
-            [y1[1], y2[1], y3[1]],
-            [y1[2], y2[2], y3[2]],
-            [y1[3], y2[3], y3[3]],
-            [y1[4], y2[4], y3[4]],
-            [y1[5], y2[5], y3[5]],
-            [y1[6], y2[6], y3[6]],
-            [y1[7], y2[7], y3[7]]]
-
-# вивід данних за допомогою цикла
-print("Матриця планування y : \n")
-for i in range(n):
-    print(y_matrix[i])
-
-x0 = [1, 1, 1, 1, 1, 1, 1, 1]
-
-# заміна -1 на х1_мін, 1 на х1_макс
-x1 = [-40, -40, 20, 20, -40, -40, 20, 20]
-
-# заміна -1 на х2_мін, 1 на х2_макс
-x2 = [20, -35, 20, -35, 20, -35, 20, -35]
-
-# заміна -1 на х3_мін, 1 на х3_макс
-x3 = [20, 25, 25, 20, 25, 20, 20, 25]
-
+x1 = [x1min, x1min, x1min, x1min, x1max, x1max, x1max, x1max, -1.73 * deltax1 + x01, 1.73 * deltax1 + x01, x01, x01,
+      x01, x01, x01]
+x2 = [x2min, x2min, x2max, x2max, x2min, x2min, x2max, x2max, x02, x02, -1.73 * deltax2 + x02, 1.73 * deltax2 + x02,
+      x02, x02, x02]
+x3 = [x3min, x3max, x3min, x3max, x3min, x3max, x3min, x3max, x03, x03, x03, x03, -1.73 * deltax3 + x03,
+      1.73 * deltax3 + x03, x03]
 # заповнення нулями х1х2, х1х3, х1х2х3
-x1x2, x1x3, x2x3, x1x2x3 = [0] * 8, [0] * 8, [0] * 8, [0] * 8
-# заповнення х1х2, х1х3, х1х2х3 добутками
-for i in range(n):
+# заповнення нулями х1kv, х2kv, х3kv
+x1x2, x1x3, x2x3, x1x2x3 = [0] * n, [0] * n, [0] * n, [0] * n
+x1kv, x2kv, x3kv = [0] * n, [0] * n, [0] * n
+for i in range(15):
     x1x2[i] = x1[i] * x2[i]
     x1x3[i] = x1[i] * x3[i]
     x2x3[i] = x2[i] * x3[i]
     x1x2x3[i] = x1[i] * x2[i] * x3[i]
+    x1kv[i] = x1[i] ** 2
+    x2kv[i] = x2[i] ** 2
+    x3kv[i] = x3[i] ** 2
+# формуємо список a
+list_for_a = list(zip(x1, x2, x3, x1x2, x1x3, x2x3, x1x2x3, x1kv, x2kv, x3kv))
+
+print("Матриця планування з натуралізованими коефіцієнтами X:")
+print("      X1           X2           X3          X1X2         X1X3         X2X3        X1X2X3       X1X1"
+      "         X2X2         X3X3")
+for i in range(n):
+    print(end=' ')
+    for j in range(len(list_for_a[0])):
+        print("{:^12.3f}".format(list_for_a[i][j]), end=' ')
+    print("")
+# вивід матриці планування
+Y = [[function(list_for_a[j][0], list_for_a[j][1], list_for_a[j][2]) for i in range(m)] for j in range(15)]
+print("Матриця планування Y:")
+print("      Y1           Y2           Y3")
+for i in range(n):
+    print(end=' ')
+    for j in range(len(Y[0])):
+        print("{:^12.3f}".format(Y[i][j]), end=' ')
+    print("")
 # середні у
 Y_average = []
-for i in range(len(y_matrix)):
-    Y_average.append(np.mean(y_matrix[i], axis=0))
-
-# формуємо списки b i a
-list_for_b = [xn[0], xn[1], xn[2], xn[3], x1x2_norm, x1x3_norm, x2x3_norm, x1x2x3_norm]
-list_for_a = list(zip(x0, x1, x2, x3, x1x2, x1x3, x2x3, x1x2x3))
-
-# вивід матриці планування Х
-print("Матриця планування X:")
+for i in range(len(Y)):
+    Y_average.append(np.mean(Y[i], axis=0))
+print("Середні значення відгуку за рядками:")
 for i in range(n):
-    print(list_for_a[i])
-# нормовані фактори b_i
-bi = []
-for k in range(n):
-    S = 0
-    for i in range(n):
-        S += (list_for_b[k][i] * Y_average[i]) / n
-    bi.append(round(S, 3))
-# розрахунок аі(система рівнянь) через функцію solve, вивід рівняння регресії
-ai = [round(i, 3) for i in solve(list_for_a, Y_average)]
-print("Рівняння регресії: \n" "y = {} + {}*x1 + {}*x2 + {}*x3 + {}*x1x2 + {}*x1x3 + {}*x2x3 + {}*x1x2x3".format(ai[0],
-       ai[1], ai[2], ai[3],ai[4], ai[5], ai[6], ai[7]))
-# вивід даних
-print("Рівняння регресії для нормованих факторів: \n" "y = {} + {}*x1 + {}*x2 + {}*x3 + {}*x1x2 + {}*x1x3 +"
-      " {}*x2x3 + {}*x1x2x3".format(bi[0], bi[1], bi[2], bi[3], bi[4], bi[5], bi[6], bi[7]))
-
-print("Перевірка за критерієм Кохрена")
-print("Середні значення відгуку за рядками:", "\n", +Y_average[0], Y_average[1], Y_average[2], Y_average[3],
-      Y_average[4], Y_average[5], Y_average[6], Y_average[7])
+    print("{:.3f}".format(Y_average[i]), end=" ")
 # розрахунок дисперсій
 dispersions = []
-for i in range(len(y_matrix)):
+for i in range(len(Y)):
     a = 0
-    for k in y_matrix[i]:
-        a += (k - np.mean(y_matrix[i], axis=0)) ** 2
-    dispersions.append(a / len(y_matrix[i]))
-# експериментально
+    for k in Y[i]:
+        a += (k - np.mean(Y[i], axis=0)) ** 2
+    dispersions.append(a / len(Y[i]))
+
+
+def find_known(num):
+    a = 0
+    for j in range(n):
+        a += Y_average[j] * list_for_a[j][num - 1] / n
+    return a
+
+
+def a(first, second):
+    a = 0
+    for j in range(n):
+        a += list_for_a[j][first - 1] * list_for_a[j][second - 1] / n
+    return a
+
+
+my = sum(Y_average) / n
+mx = []
+for i in range(10):
+    number_lst = []
+    for j in range(n):
+        number_lst.append(list_for_a[j][i])
+    mx.append(sum(number_lst) / len(number_lst))
+
+det1 = [
+    [1, mx[0], mx[1], mx[2], mx[3], mx[4], mx[5], mx[6], mx[7], mx[8], mx[9]],
+    [mx[0], a(1, 1), a(1, 2), a(1, 3), a(1, 4), a(1, 5), a(1, 6), a(1, 7), a(1, 8), a(1, 9), a(1, 10)],
+    [mx[1], a(2, 1), a(2, 2), a(2, 3), a(2, 4), a(2, 5), a(2, 6), a(2, 7), a(2, 8), a(2, 9), a(2, 10)],
+    [mx[2], a(3, 1), a(3, 2), a(3, 3), a(3, 4), a(3, 5), a(3, 6), a(3, 7), a(3, 8), a(3, 9), a(3, 10)],
+    [mx[3], a(4, 1), a(4, 2), a(4, 3), a(4, 4), a(4, 5), a(4, 6), a(4, 7), a(4, 8), a(4, 9), a(4, 10)],
+    [mx[4], a(5, 1), a(5, 2), a(5, 3), a(5, 4), a(5, 5), a(5, 6), a(5, 7), a(5, 8), a(5, 9), a(5, 10)],
+    [mx[5], a(6, 1), a(6, 2), a(6, 3), a(6, 4), a(6, 5), a(6, 6), a(6, 7), a(6, 8), a(6, 9), a(6, 10)],
+    [mx[6], a(7, 1), a(7, 2), a(7, 3), a(7, 4), a(7, 5), a(7, 6), a(7, 7), a(7, 8), a(7, 9), a(7, 10)],
+    [mx[7], a(8, 1), a(8, 2), a(8, 3), a(8, 4), a(8, 5), a(8, 6), a(8, 7), a(8, 8), a(8, 9), a(8, 10)],
+    [mx[8], a(9, 1), a(9, 2), a(9, 3), a(9, 4), a(9, 5), a(9, 6), a(9, 7), a(9, 8), a(9, 9), a(9, 10)],
+    [mx[9], a(10, 1), a(10, 2), a(10, 3), a(10, 4), a(10, 5), a(10, 6), a(10, 7), a(10, 8), a(10, 9), a(10, 10)]]
+
+det2 = [my, find_known(1), find_known(2), find_known(3), find_known(4), find_known(5), find_known(6), find_known(7),
+        find_known(8), find_known(9), find_known(10)]
+
+beta = solve(det1, det2)
+print("\nОтримане рівняння регресії:")
+print("{:.3f} + {:.3f} * X1 + {:.3f} * X2 + {:.3f} * X3 + {:.3f} * Х1X2 + {:.3f} * Х1X3 + {:.3f} * Х2X3"
+          "+ {:.3f} * Х1Х2X3 + {:.3f} * X11^2 + {:.3f} * X22^2 + {:.3f} * X33^2 = ŷ"
+          .format(beta[0], beta[1], beta[2], beta[3], beta[4], beta[5], beta[6], beta[7], beta[8], beta[9], beta[10]))
+y_i = [0] * n
+print("Експериментальні значення:")
+for k in range(n):
+    y_i[k] = beta[0] + beta[1] * list_for_a[k][0] + beta[2] * list_for_a[k][1] + beta[3] * list_for_a[k][2] + \
+             beta[4] * list_for_a[k][3] + beta[5] * list_for_a[k][4] + beta[6] * list_for_a[k][5] + beta[7] * \
+             list_for_a[k][6] + beta[8] * list_for_a[k][7] + beta[9] * list_for_a[k][8] + beta[10] * list_for_a[k][9]
+for i in range(n):
+    print("{:.3f}".format(y_i[i]), end=" ")
+print("\n------------------------------- Перевірка за критерієм Кохрена -------------------------------")
+start_1 = perf_counter()
 Gp = max(dispersions) / sum(dispersions)
-# теоретично
-Gt = 0.5157
-# перевірка однорідності дисперсій
+Gt = 0.3346
+print("Gp =", Gp)
 if Gp < Gt:
     print("Дисперсія однорідна")
 else:
     print("Дисперсія неоднорідна")
-# критерій Стьюдента
-print(" Перевірка значущості коефіцієнтів за критерієм Стьюдента")
+t_kohren = perf_counter() - start_1
+print("------------------ Перевірка значущості коефіцієнтів за критерієм Стьюдента ------------------")
+start_2 = perf_counter()
 sb = sum(dispersions) / len(dispersions)
-sbs = (sb / (8 * 3)) ** 0.5
+sbs = (sb / (n * m)) ** 0.5
 
-t_list = [abs(bi[i]) / sbs for i in range(0, 8)]
-
-d = 0
-res = [0] * 8
-coef_1 = []
-coef_2 = []
-# кількість повторень кожної комбінації
-m = 3
 F3 = (m - 1) * n
-# перевірка значущості коефіцієнтів
-for i in range(n):
-    if t_list[i] < t.ppf(q=0.975, df=F3):
-        coef_2.append(bi[i])
-        res[i] = 0
+coefs1 = []
+coefs2 = []
+d = 11
+res = [0] * 11
+for j in range(11):
+    t_pract = 0
+    for i in range(15):
+        if j == 0:
+            t_pract += Y_average[i] / 15
+        else:
+            t_pract += Y_average[i] * xn[i][j - 1]
+        res[j] = beta[j]
+    if fabs(t_pract / sbs) < t.ppf(q=0.975, df=F3):
+        coefs2.append(beta[j])
+        res[j] = 0
+        d-=1
     else:
-        coef_1.append(bi[i])
-        res[i] = bi[i]
-        d += 1
-
-# вивід
-print("Значущі коефіцієнти регресії:", coef_1)
-print("Незначущі коефіцієнти регресії:", coef_2)
-
-# значення y з коефіцієнтами регресії
+        coefs1.append(beta[j])
+t_student = perf_counter() - start_2
+print("Значущі коефіцієнти регресії:", [round(i, 3) for i in coefs1])
+print("Незначущі коефіцієнти регресії:", [round(i, 3) for i in coefs2])
 y_st = []
 for i in range(n):
-    y_st.append(res[0] + res[1] * xn[1][i] + res[2] * xn[2][i] + res[3] * xn[3][i] + res[4] * x1x2_norm[i]\
-                + res[5] * x1x3_norm[i] + res[6] * x2x3_norm[i] + res[7] * x1x2x3_norm[i])
-print("Значення з отриманими коефіцієнтами:\n", y_st)
+    y_st.append(res[0] + res[1] * x1[i] + res[2] * x2[i] + res[3] * x3[i] + res[4] * x1x2[i] + res[5] *
+                x1x3[i] + res[6] * x2x3[i] + res[7] * x1x2x3[i] + res[8] * x1kv[i] + res[9] *
+                x2kv[i] + res[10] * x3kv[i])
+print("Значення з отриманими коефіцієнтами:")
+for i in range(n):
+    print("{:.3f}".format(y_st[i]), end=" ")
 
-# критерій Фішера
-print("\nПеревірка адекватності за критерієм Фішера\n")
-Sad = m * sum([(y_st[i] - Y_average[i]) ** 2 for i in range(8)]) / (n - d)
+print("\n------------------------- Перевірка адекватності за критерієм Фішера -------------------------")
+start_3 = perf_counter()
+Sad = m * sum([(y_st[i] - Y_average[i]) ** 2 for i in range(n)]) / (n - d)
 Fp = Sad / sb
 F4 = n - d
+print("Fp =", Fp)
 if Fp < f.ppf(q=0.95, dfn=F4, dfd=F3):
     print("Рівняння регресії адекватне при рівні значимості 0.05")
 else:
     print("Рівняння регресії неадекватне при рівні значимості 0.05")
+t_fisher = perf_counter() - start_3
+
+print("Час виконання кожної статичної перевірки :", t_fisher, t_kohren, t_student)

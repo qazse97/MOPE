@@ -3,11 +3,11 @@ from random import randrange
 import numpy as np
 from numpy.linalg import solve
 from scipy.stats import f, t
-
+from time import perf_counter
 m = 3
 n = 15
 
-# варіант 113
+
 x1min = -15
 x1max = 30
 x2min = 5
@@ -166,6 +166,8 @@ coefs1 = []
 coefs2 = []
 d = 11
 res = [0] * 11
+all_time = 0
+start1 = perf_counter()
 for j in range(11):
     t_pract = 0
     for i in range(15):
@@ -174,12 +176,18 @@ for j in range(11):
         else:
             t_pract += Y_average[i] * xn[i][j - 1]
         res[j] = beta[j]
+    time1 = perf_counter() - start1
     if fabs(t_pract / sbs) < t.ppf(q=0.975, df=F3):
         coefs2.append(beta[j])
         res[j] = 0
         d-=1
     else:
+        start2 = perf_counter()
         coefs1.append(beta[j])
+        time2 = perf_counter() - start2
+    all_time += time1 + time2
+if float(all_time) > 0.1:
+    print("Модель неадкватна")
 print("Значущі коефіцієнти регресії:", [round(i, 3) for i in coefs1])
 print("Незначущі коефіцієнти регресії:", [round(i, 3) for i in coefs2])
 y_st = []
